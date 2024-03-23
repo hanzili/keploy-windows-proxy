@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Go
+/vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/Godeps/
+
+# Editor directories and files
+.DS_Store
+.env
+.vscode/
