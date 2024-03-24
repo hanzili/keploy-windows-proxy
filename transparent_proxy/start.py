@@ -1,43 +1,46 @@
-from mitmproxy import ctx, http
+from mitmproxy import http
+import requests
+import logging
 
-def request(flow: http.HTTPFlow):
-    print(flow.request.port)
-    # Example: Intercepting traffic to and from port 3000
-    if flow.request.port in [3000]:
+# Set up basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+logger = logging.getLogger()
+
+class SimpleForwardRequest:
+    def __init__(self):
+        self.target_url = "http://localhost:9090"
+        
+    def response(self, flow: http.HTTPFlow) -> None:
+        # Simplified forwarding logic
         try:
-            # Construct data for a request
-            data = {
-                "type": "request",
-                "direction": "outgoing" if flow.request.is_outgoing else "incoming",
-                "url": flow.request.url,
+            forwarded_response = {
                 "method": flow.request.method,
-                "headers": dict(flow.request.headers),
-                "body": flow.request.get_text(strict=False)
+                "url": flow.request.url,
+                "headers": dict(flow.request.headers.items()),
+                "data": flow.request.content,
+                "params": flow.request.query
             }
-            send_to_go_service(data)
-        except Exception as e:
-            ctx.log.error(str(e))
+            
+            requests.post("http://localhost:9090", json=forwarded_response)
 
-def response(flow: http.HTTPFlow):
-    print(flow.response.port)
-    if flow.request.port in [3000]:
+        except Exception as e:
+            logger.error(f"Error forwarding request: {e}")
+
+    def request(self, flow: http.HTTPFlow) -> None:
+        # Simplified forwarding logic
         try:
-            # Construct data for a response
-            data = {
-                "type": "response",
-                "direction": "incoming" if flow.response.is_outgoing else "outgoing",
-                "status_code": flow.response.status_code,
-                "headers": dict(flow.response.headers),
-                "body": flow.response.get_text(strict=False)
+            forwarded_response = {
+                "method": flow.request.method,
+                "url": flow.request.url,
+                "headers": dict(flow.request.headers.items()),
+                "data": flow.request.content,
+                "params": flow.request.query
             }
-            send_to_go_service(data)
-        except Exception as e:
-            ctx.log.error(str(e))
+            requests.post("http://localhost:9090", json=forwarded_response)
 
-def send_to_go_service(data):
-    import json
-    import requests
-    # Convert data to JSON
-    json_data = json.dumps(data)
-    # Send JSON data to the Go service
-    requests.post("http://localhost:9090/", data=json_data, headers={'Content-Type': 'application/json'})
+        except Exception as e:
+            logger.error(f"Error forwarding request: {e}")
+
+addons = [
+    SimpleForwardRequest()
+]
